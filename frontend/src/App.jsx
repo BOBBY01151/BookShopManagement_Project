@@ -8,14 +8,14 @@ import { CartProvider } from './contexts/CartContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 
 // Components
-import Navbar from './components/Navbar'
-import Footer from './components/Footer'
-import ProtectedRoute from './components/ProtectedRoute'
-import ErrorBoundary from './components/ErrorBoundary'
+import Navbar from './components/common/Navbar'
+import Footer from './components/common/Footer'
+import ProtectedRoute from './components/auth/ProtectedRoute'
+import ErrorBoundary from './components/common/ErrorBoundary'
 
 // Pages
 import Home from './pages/Home'
-import Books from './pages/Books'
+import Products from './pages/Products'
 import BookDetails from './pages/BookDetails'
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
@@ -50,8 +50,8 @@ function App() {
                     <Routes>
                       {/* Public Routes */}
                       <Route path="/" element={<Home />} />
-                      <Route path="/books" element={<Books />} />
-                      <Route path="/books/:id" element={<BookDetails />} />
+                      <Route path="/products" element={<Products />} />
+                      <Route path="/products/:id" element={<BookDetails />} />
                       <Route path="/login" element={<Login />} />
                       <Route path="/register" element={<Register />} />
                       
