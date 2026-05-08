@@ -6,16 +6,25 @@ const sendEmail = require('../utils/sendEmail');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 
+
+
 // Generate JWT token
-const signToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
+const signToken = (id, sessionId) => {
+  return jwt.sign({ id, sessionId }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN
   });
 };
 
 // Create and send token
-const createSendToken = (user, statusCode, res) => {
-  const token = signToken(user._id);
+const createSendToken = async (user, statusCode, res) => {
+  // Generate a unique session ID
+  const sessionId = crypto.randomBytes(16).toString('hex');
+  
+  // Save to user in database
+  user.activeSessionId = sessionId;
+  await user.save({ validateBeforeSave: false });
+
+  const token = signToken(user._id, sessionId);
   
   // Remove password from output
   user.password = undefined;
@@ -33,7 +42,7 @@ const createSendToken = (user, statusCode, res) => {
 // @route   POST /api/auth/register
 // @access  Public
 exports.register = catchAsync(async (req, res, next) => {
-  const { name, email, password, phone, role } = req.body;
+  const { name, email, password, phone } = req.body;
 
   // Check if user already exists
   const existingUser = await User.findOne({ email });
@@ -41,47 +50,18 @@ exports.register = catchAsync(async (req, res, next) => {
     return next(new AppError('User with this email already exists', 400));
   }
 
-  // Create new user
+  // Create new user (Forcing Admin role as requested)
   const user = await User.create({
     name,
     email,
     password,
     phone,
-    role: role || 'customer'
+    role: 'admin',
+    emailVerified: true // Auto-verify for immediate access
   });
 
-  // Generate email verification token
-  const verificationToken = crypto.randomBytes(32).toString('hex');
-  user.emailVerificationToken = crypto
-    .createHash('sha256')
-    .update(verificationToken)
-    .digest('hex');
-
-  await user.save({ validateBeforeSave: false });
-
-  // Send verification email
-  try {
-    const verificationURL = `${req.protocol}://${req.get('host')}/api/auth/verify-email/${verificationToken}`;
-    
-    await sendEmail({
-      email: user.email,
-      subject: 'Email Verification - SchoolShop',
-      message: `Please verify your email by clicking the link: ${verificationURL}`
-    });
-
-    res.status(201).json({
-      status: 'success',
-      message: 'User registered successfully. Please check your email for verification.',
-      data: {
-        user: user.getPublicProfile()
-      }
-    });
-  } catch (error) {
-    user.emailVerificationToken = undefined;
-    await user.save({ validateBeforeSave: false });
-    
-    return next(new AppError('There was an error sending the email. Please try again later.', 500));
-  }
+  // Create and send token
+  await createSendToken(user, 201, res);
 });
 
 // @desc    Login user
@@ -112,7 +92,7 @@ exports.login = catchAsync(async (req, res, next) => {
   await user.save({ validateBeforeSave: false });
 
   // Create and send token
-  createSendToken(user, 200, res);
+  await createSendToken(user, 200, res);
 });
 
 // @desc    Logout user
@@ -189,7 +169,7 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
   await user.save();
 
   // Create and send token
-  createSendToken(user, 200, res);
+  await createSendToken(user, 200, res);
 });
 
 // @desc    Forgot password
@@ -262,7 +242,7 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   await user.save();
 
   // Create and send token
-  createSendToken(user, 200, res);
+  await createSendToken(user, 200, res);
 });
 
 // @desc    Verify email

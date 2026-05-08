@@ -8,10 +8,11 @@ const hpp = require('hpp');
 exports.setSecurityHeaders = helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'"],
+      defaultSrc: ["'self'", "http://localhost:5000"],
+      connectSrc: ["'self'", "http://localhost:5000", "ws://localhost:5174"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:", "http://localhost:5000"],
     },
   },
   crossOriginEmbedderPolicy: false
@@ -34,7 +35,7 @@ exports.createRateLimit = (windowMs, max, message) => {
 // General rate limiting
 exports.generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 1000, // Increased for development (from 100)
   message: {
     status: 'error',
     message: 'Too many requests from this IP, please try again later.'
@@ -44,7 +45,7 @@ exports.generalLimiter = rateLimit({
 // Authentication rate limiting
 exports.authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 requests per windowMs
+  max: 100, // Increased for development (from 5)
   message: {
     status: 'error',
     message: 'Too many authentication attempts, please try again later.'
@@ -83,23 +84,14 @@ exports.preventParameterPollution = hpp({
 
 // CORS configuration
 exports.corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'https://schoolshop.netlify.app',
-      'https://schoolshop.herokuapp.com'
-    ];
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'https://schoolshop.netlify.app',
+    'https://schoolshop.herokuapp.com'
+  ],
   credentials: true,
   optionsSuccessStatus: 200
 };

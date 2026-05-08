@@ -1,11 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 
 export const useFetch = (url, options = {}) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { token } = useAuth();
 
   const fetchData = useCallback(async () => {
     try {
@@ -16,7 +14,6 @@ export const useFetch = (url, options = {}) => {
         ...options,
         headers: {
           'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` }),
           ...options.headers,
         },
       };
@@ -34,7 +31,7 @@ export const useFetch = (url, options = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [url, token, options]);
+  }, [url, options]);
 
   useEffect(() => {
     fetchData();
@@ -50,7 +47,6 @@ export const useFetch = (url, options = {}) => {
 export const usePost = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { token } = useAuth();
 
   const post = useCallback(async (url, data, options = {}) => {
     try {
@@ -61,7 +57,6 @@ export const usePost = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` }),
           ...options.headers,
         },
         body: JSON.stringify(data),
@@ -82,7 +77,7 @@ export const usePost = () => {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   return { post, loading, error };
 };
@@ -90,7 +85,6 @@ export const usePost = () => {
 export const usePut = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { token } = useAuth();
 
   const put = useCallback(async (url, data, options = {}) => {
     try {
@@ -101,7 +95,6 @@ export const usePut = () => {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` }),
           ...options.headers,
         },
         body: JSON.stringify(data),
@@ -122,7 +115,7 @@ export const usePut = () => {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   return { put, loading, error };
 };
@@ -130,7 +123,6 @@ export const usePut = () => {
 export const useDelete = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { token } = useAuth();
 
   const del = useCallback(async (url, options = {}) => {
     try {
@@ -140,7 +132,6 @@ export const useDelete = () => {
       const config = {
         method: 'DELETE',
         headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
           ...options.headers,
         },
         ...options,
@@ -160,7 +151,7 @@ export const useDelete = () => {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   return { del, loading, error };
 };

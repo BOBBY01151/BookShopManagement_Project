@@ -10,7 +10,6 @@ const api = axios.create({
   withCredentials: true
 });
 
-// Reuse the token logic from auth.js (ideally this should be in a common api.js)
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -19,9 +18,9 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-export const productsAPI = {
-  getProducts: (params) => api.get('/products', { params }),
-  createProduct: (data) => api.post('/products', data),
-  updateProduct: (id, data) => api.patch(`/products/${id}`, data),
-  deleteProduct: (id) => api.delete(`/products/${id}`)
+export const categoriesAPI = {
+  getCategories: () => api.get('/categories'),
+  createCategory: (data) => api.post('/categories', data),
+  updateCategory: (id, data) => api.patch(`/categories/${id}`, data),
+  deleteCategory: (id) => api.delete(`/categories/${id}`)
 };

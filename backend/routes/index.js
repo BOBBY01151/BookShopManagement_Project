@@ -1,9 +1,7 @@
 const express = require('express');
 const authRoutes = require('./authRoutes');
-const bookRoutes = require('./bookRoutes');
-const orderRoutes = require('./orderRoutes');
-const userRoutes = require('./userRoutes');
-const reviewRoutes = require('./reviewRoutes');
+const productRoutes = require('./productRoutes');
+const categoryRoutes = require('./categoryRoutes');
 
 const router = express.Router();
 
@@ -11,18 +9,16 @@ const router = express.Router();
 router.get('/health', (req, res) => {
   res.status(200).json({
     status: 'success',
-    message: 'SchoolShop API is running',
+    message: 'BookShop Admin API is running',
     timestamp: new Date().toISOString(),
     version: process.env.API_VERSION || '1.0.0'
   });
 });
 
-// API routes
+// Auth and Business routes
 router.use('/auth', authRoutes);
-router.use('/books', bookRoutes);
-router.use('/orders', orderRoutes);
-router.use('/users', userRoutes);
-router.use('/reviews', reviewRoutes);
+router.use('/products', productRoutes);
+router.use('/categories', categoryRoutes);
 
 // 404 handler for API routes
 router.all('*', (req, res) => {

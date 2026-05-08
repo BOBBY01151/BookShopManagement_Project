@@ -31,7 +31,8 @@ const userSchema = new mongoose.Schema({
   phone: {
     type: String,
     trim: true,
-    match: [/^[\+]?[1-9][\d]{0,15}$/, 'Please enter a valid phone number']
+    required: [true, 'Phone number is required'],
+    match: [/^07\d{8}$/, 'Please enter a valid 10-digit phone number starting with 07']
   },
   address: {
     street: String,
@@ -75,7 +76,12 @@ const userSchema = new mongoose.Schema({
         default: false
       }
     }
-  }
+  },
+  activeSessionId: {
+    type: String,
+    default: null
+  },
+  passwordChangedAt: Date
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
@@ -101,6 +107,12 @@ userSchema.pre('save', async function(next) {
     // Hash password with cost of 12
     const salt = await bcrypt.genSalt(12);
     this.password = await bcrypt.hash(this.password, salt);
+    
+    // Update passwordChangedAt field
+    if (!this.isNew) {
+      this.passwordChangedAt = Date.now() - 1000;
+    }
+    
     next();
   } catch (error) {
     next(error);
@@ -110,6 +122,16 @@ userSchema.pre('save', async function(next) {
 // Instance method to check password
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
+};
+
+// Instance method to check if password was changed after token was issued
+userSchema.methods.changedPasswordAfter = function(JWTTimestamp) {
+  if (this.passwordChangedAt) {
+    const changedTimestamp = parseInt(this.passwordChangedAt.getTime() / 1000, 10);
+    return JWTTimestamp < changedTimestamp;
+  }
+  // False means NOT changed
+  return false;
 };
 
 // Instance method to get public profile

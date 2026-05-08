@@ -2,51 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  html {
-    font-family: 'Inter', system-ui, sans-serif;
-  }
+:root {
+  /* Green Color System */
+  --primary-green: #22c55e;
+  --dark-green: #166534;
+  --light-green: #dcfce7;
+  --bg-main: #f9fafb;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
   
-  body {
-    @apply text-gray-900 dark:text-gray-100;
+  /* System Colors */
+  --error: #ef4444;
+  --warning: #f59e0b;
+  --success: #22c55e;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+@layer base {
+  html, body {
+    @apply bg-[var(--bg-main)] text-[var(--text-primary)] font-sans antialiased h-full overflow-hidden;
+    overscroll-behavior: none;
   }
 }
 
 @layer components {
   .btn {
-    @apply px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply px-5 py-2.5 rounded-xl font-semibold transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 active:scale-95;
   }
   
   .btn-primary {
-    @apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500;
+    @apply bg-[var(--primary-green)] text-white hover:bg-[var(--dark-green)] focus:ring-[var(--primary-green)] shadow-md hover:shadow-green-200/50;
   }
   
   .btn-secondary {
-    @apply bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600;
+    @apply bg-white text-[var(--primary-green)] border-2 border-[var(--primary-green)] hover:bg-[var(--light-green)] focus:ring-[var(--primary-green)];
   }
   
-  .btn-danger {
-    @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+  .glass-morphism {
+    @apply backdrop-blur-md bg-white/70 border border-white/20 shadow-xl;
   }
-  
-  .btn-success {
-    @apply bg-green-600 text-white hover:bg-green-700 focus:ring-green-500;
-  }
-  
+
   .input {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white;
+    @apply w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-[var(--primary-green)] transition-all;
   }
   
   .card {
-    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md p-6;
+    @apply bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300;
   }
   
-  .book-card {
-    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200;
+  .sidebar-item {
+    @apply flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 
+           text-gray-300 hover:bg-white/10 hover:text-white;
   }
-  
-  .loading-spinner {
-    @apply animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600;
+
+  .sidebar-item-active {
+    @apply bg-[var(--primary-green)] text-white shadow-lg shadow-green-900/20;
   }
 }
 
@@ -58,48 +72,24 @@
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-gray-100 dark:bg-gray-800;
+  @apply bg-transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+  @apply bg-gray-200 rounded-full hover:bg-[var(--primary-green)];
 }
 
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400 dark:bg-gray-500;
+/* Recharts Customization */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  @apply stroke-gray-100;
 }
 
-/* Loading animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.fade-in {
-  animation: fadeIn 0.5s ease-out;
-}
-
-/* Book card hover effects */
-.book-card:hover {
-  transform: translateY(-2px);
-}
-
-/* Form validation styles */
-.error {
-  @apply text-red-600 text-sm mt-1;
-}
-
-.success {
-  @apply text-green-600 text-sm mt-1;
+.recharts-default-tooltip {
+  @apply !border-none !rounded-2xl !shadow-xl !bg-white/80 !backdrop-blur-md;
 }
 

@@ -32,8 +32,8 @@ connectDB();
 app.set('trust proxy', 1);
 
 // Global middleware
-app.use(setSecurityHeaders);
 app.use(cors(corsOptions));
+app.use(setSecurityHeaders);
 app.use(compression());
 
 // Rate limiting

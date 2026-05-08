@@ -1,29 +1,22 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from 'react-query'
 import { Toaster } from 'react-hot-toast'
 
 // Context Providers
-import { AuthProvider } from './contexts/AuthContext'
-import { CartProvider } from './contexts/CartContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 
 // Components
 import Navbar from './components/common/Navbar'
-import Footer from './components/common/Footer'
-import ProtectedRoute from './components/auth/ProtectedRoute'
+import Sidebar from './components/common/Sidebar'
+import BottomNavigation from './components/common/BottomNavigation'
 import ErrorBoundary from './components/common/ErrorBoundary'
 
 // Pages
-import Home from './pages/Home'
-import Products from './pages/Products'
-import BookDetails from './pages/BookDetails'
-import Cart from './pages/Cart'
-import Checkout from './pages/Checkout'
-import Login from './pages/Login'
-import Register from './pages/Register'
+import Inventory from './pages/Inventory'
 import Profile from './pages/Profile'
 import Dashboard from './pages/Dashboard'
-import Orders from './pages/Orders'
+import Login from './pages/Login'
+import Register from './pages/Register'
 import NotFound from './pages/NotFound'
 
 // Create a client
@@ -41,70 +34,72 @@ function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
-          <AuthProvider>
-            <CartProvider>
-              <Router>
-                <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-                  <Navbar />
-                  <main className="container mx-auto px-4 py-8">
-                    <Routes>
-                      {/* Public Routes */}
-                      <Route path="/" element={<Home />} />
-                      <Route path="/products" element={<Products />} />
-                      <Route path="/products/:id" element={<BookDetails />} />
-                      <Route path="/login" element={<Login />} />
-                      <Route path="/register" element={<Register />} />
-                      
-                      {/* Protected Routes */}
-                      <Route path="/cart" element={
-                        <ProtectedRoute>
-                          <Cart />
-                        </ProtectedRoute>
-                      } />
-                      <Route path="/checkout" element={
-                        <ProtectedRoute>
-                          <Checkout />
-                        </ProtectedRoute>
-                      } />
-                      <Route path="/profile" element={
-                        <ProtectedRoute>
-                          <Profile />
-                        </ProtectedRoute>
-                      } />
-                      <Route path="/orders" element={
-                        <ProtectedRoute>
-                          <Orders />
-                        </ProtectedRoute>
-                      } />
-                      <Route path="/dashboard" element={
-                        <ProtectedRoute adminOnly>
-                          <Dashboard />
-                        </ProtectedRoute>
-                      } />
-                      
-                      {/* 404 Route */}
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </main>
-                  <Footer />
-                  <Toaster 
-                    position="top-right"
-                    toastOptions={{
-                      duration: 4000,
-                      style: {
-                        background: '#363636',
-                        color: '#fff',
-                      },
-                    }}
-                  />
-                </div>
-              </Router>
-            </CartProvider>
-          </AuthProvider>
+          <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <AppContent />
+          </Router>
         </ThemeProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   )
+}
+
+function AppContent() {
+  return <LayoutWrapper />;
+}
+
+
+function LayoutWrapper() {
+  const location = useLocation();
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+
+  if (isAuthPage) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+        </Routes>
+        <Toaster position="top-right" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-white dark:bg-gray-950">
+      {/* Desktop Sidebar */}
+      <Sidebar />
+      
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        <Navbar />
+        
+        <main className="flex-1 overflow-y-auto pb-24 lg:pb-8 scroll-smooth">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/inventory" element={<Inventory />} />
+              <Route path="/settings" element={<Profile />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </div>
+        </main>
+      </div>
+
+      {/* Mobile Bottom Navigation */}
+      <BottomNavigation />
+      
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#166534',
+            color: '#fff',
+            borderRadius: '16px',
+          },
+        }}
+      />
+    </div>
+  );
 }
 
 export default App
