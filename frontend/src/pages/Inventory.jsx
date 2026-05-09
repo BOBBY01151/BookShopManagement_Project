@@ -19,7 +19,8 @@ import {
   MinusCircle,
   Layers,
   ChevronLeft,
-  LayoutGrid
+  LayoutGrid,
+  RefreshCcw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { productsAPI } from '../api/products';
@@ -31,6 +32,8 @@ const Inventory = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingProductId, setEditingProductId] = useState(null);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCategoryId, setExpandedCategoryId] = useState(null);
@@ -56,6 +59,16 @@ const Inventory = () => {
     name: '',
     description: ''
   });
+
+  const Skeleton = ({ className }) => (
+    <div className={`relative overflow-hidden bg-gray-100 rounded-xl ${className}`}>
+      <motion.div 
+        animate={{ x: ['-100%', '100%'] }}
+        transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }}
+        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-1/2 h-full -skew-x-12"
+      />
+    </div>
+  );
 
   useEffect(() => {
     fetchInitialData();
@@ -92,7 +105,8 @@ const Inventory = () => {
         }));
       }
     } catch (error) {
-      toast.error('Failed to load data');
+      const errorMsg = error.response?.data?.message || error.message || 'Connection failure';
+      toast.error(`System Sync Failed: ${errorMsg}`);
     } finally {
       setLoading(false);
     }
@@ -117,6 +131,36 @@ const Inventory = () => {
     }));
   };
 
+  const handleEditProduct = (product) => {
+    setFormData({
+      title: product.title,
+      author: product.author,
+      category: product.category,
+      subcategory: product.subcategory || '',
+      price: product.price.toString(),
+      stock: product.stock.toString(),
+      description: product.description || ''
+    });
+    setEditingProductId(product._id);
+    setIsEditMode(true);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteProduct = async (id) => {
+    if (window.confirm('Are you sure you want to delete this product?')) {
+      try {
+        setLoading(true);
+        await productsAPI.deleteProduct(id);
+        toast.success('Product deleted successfully');
+        fetchInitialData();
+      } catch (error) {
+        toast.error('Failed to delete product');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   const handleAddProduct = async (e) => {
     e.preventDefault();
     if (!formData.category) {
@@ -124,21 +168,38 @@ const Inventory = () => {
       return;
     }
     try {
-      await productsAPI.createProduct(formData);
-      toast.success('Item added to inventory');
-      setIsModalOpen(false);
-      setFormData({ 
-        title: '', 
-        author: '', 
-        category: categories[0]?.name || '', 
-        subcategory: '',
-        price: '', 
-        stock: '', 
-        description: '' 
-      });
-      fetchInitialData();
+      setLoading(true);
+      if (isEditMode) {
+        const response = await productsAPI.updateProduct(editingProductId, formData);
+        if (response.data.status === 'success') {
+          toast.success('Product updated successfully');
+          setIsModalOpen(false);
+          setIsEditMode(false);
+          setEditingProductId(null);
+          fetchInitialData();
+        }
+      } else {
+        const response = await productsAPI.createProduct(formData);
+        if (response.data.status === 'success') {
+          toast.success('Product added successfully');
+          setIsModalOpen(false);
+          setFormData({ 
+            title: '', 
+            author: '', 
+            category: categories[0]?.name || '', 
+            subcategory: '',
+            price: '', 
+            stock: '', 
+            description: '' 
+          });
+          fetchInitialData();
+        }
+      }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to add item');
+      const errorMsg = error.response?.data?.message || error.message || 'Internal process failure';
+      toast.error(`Operation Failed: ${errorMsg}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -258,9 +319,31 @@ const Inventory = () => {
       {/* Content */}
       <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden flex flex-col min-h-[400px]">
         {loading ? (
-          <div className="flex-1 flex flex-col items-center justify-center space-y-4">
-            <Loader2 className="h-12 w-12 text-[#22c55e] animate-spin" />
-            <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Syncing Repository...</p>
+          <div className="flex-1 flex flex-col">
+            <div className="bg-gray-50/50 flex">
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="px-8 py-5 flex-1">
+                  <Skeleton className="h-3 w-20" />
+                </div>
+              ))}
+            </div>
+            <div className="divide-y divide-gray-50">
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="px-8 py-6 flex items-center gap-8">
+                  <div className="flex items-center gap-4 flex-1">
+                    <Skeleton className="h-12 w-12 rounded-xl" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-8 w-16 rounded-lg" />
+                </div>
+              ))}
+            </div>
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
@@ -319,7 +402,7 @@ const Inventory = () => {
                         </div>
                       </td>
                       <td className="px-8 py-6">
-                        <p className="text-sm font-black text-[#22c55e]">${product.price.toFixed(2)}</p>
+                        <p className="text-sm font-black text-[#22c55e]">Rs. {product.price.toLocaleString('en-LK', { minimumFractionDigits: 2 })}</p>
                       </td>
                       <td className="px-8 py-6">
                         <div className="flex items-center gap-1.5">
@@ -330,9 +413,22 @@ const Inventory = () => {
                         </div>
                       </td>
                       <td className="px-8 py-6 text-right">
-                        <button className="p-2 text-gray-400 hover:text-gray-900 transition-colors">
-                          <MoreVertical className="h-5 w-5" />
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button 
+                            onClick={() => handleEditProduct(product)}
+                            className="p-2 text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
+                            title="Edit Product"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteProduct(product._id)}
+                            className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                            title="Delete Product"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -381,17 +477,23 @@ const Inventory = () => {
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { setIsModalOpen(false); setIsEditMode(false); setEditingProductId(null); }} className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" />
             <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative bg-white w-full max-w-2xl rounded-[40px] shadow-2xl overflow-hidden">
               <div className="p-8 border-b border-gray-100 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 bg-[#166534] rounded-2xl flex items-center justify-center text-white shadow-lg"><Plus className="h-6 w-6" /></div>
+                  <div className="h-12 w-12 bg-[#166534] rounded-2xl flex items-center justify-center text-white shadow-lg">
+                    {isEditMode ? <Edit2 className="h-6 w-6" /> : <Plus className="h-6 w-6" />}
+                  </div>
                   <div>
-                    <h2 className="text-2xl font-black text-gray-900 tracking-tight">Add New Item</h2>
-                    <p className="text-sm text-gray-500 font-bold uppercase tracking-widest">Inventory Enrollment</p>
+                    <h2 className="text-2xl font-black text-gray-900 tracking-tight">
+                      {isEditMode ? 'Edit Product' : 'Add New Item'}
+                    </h2>
+                    <p className="text-sm text-gray-500 font-bold uppercase tracking-widest">
+                      {isEditMode ? 'Modify Repository' : 'Inventory Enrollment'}
+                    </p>
                   </div>
                 </div>
-                <button onClick={() => setIsModalOpen(false)} className="p-3 bg-gray-50 rounded-2xl text-gray-400 hover:text-gray-900 transition-colors"><X className="h-6 w-6" /></button>
+                <button onClick={() => { setIsModalOpen(false); setIsEditMode(false); setEditingProductId(null); }} className="p-3 bg-gray-50 rounded-2xl text-gray-400 hover:text-gray-900 transition-colors"><X className="h-6 w-6" /></button>
               </div>
               <form onSubmit={handleAddProduct} className="p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -411,8 +513,8 @@ const Inventory = () => {
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Main Category</label>
-                    <div className="relative">
-                      <Tag className="absolute left-5 top-5 h-5 w-5 text-gray-400 pointer-events-none" />
+                    <div className="relative group">
+                      <Tag className="absolute left-5 top-5 h-5 w-5 text-gray-400 group-focus-within:text-[#22c55e] transition-colors pointer-events-none" />
                       <select required value={formData.category} onChange={handleCategoryChange} className="w-full pl-14 pr-12 py-4 bg-gray-50 border-none rounded-2xl font-bold text-gray-900 focus:ring-2 focus:ring-green-500/20 outline-none transition-all appearance-none">
                         <option value="">Select Category</option>
                         {categories.map(c => <option key={c._id} value={c.name}>{c.name}</option>)}
@@ -422,8 +524,8 @@ const Inventory = () => {
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Subcategory</label>
-                    <div className="relative">
-                      <Layers className="absolute left-5 top-5 h-5 w-5 text-gray-400 pointer-events-none" />
+                    <div className="relative group">
+                      <Layers className="absolute left-5 top-5 h-5 w-5 text-gray-400 group-focus-within:text-[#22c55e] transition-colors pointer-events-none" />
                       <select value={formData.subcategory} disabled={!formData.category || getSelectedCategorySubcategories().length === 0} onChange={(e) => setFormData({...formData, subcategory: e.target.value})} className={`w-full pl-14 pr-12 py-4 border-none rounded-2xl font-bold text-gray-900 focus:ring-2 focus:ring-green-500/20 outline-none transition-all appearance-none ${!formData.category || getSelectedCategorySubcategories().length === 0 ? 'bg-gray-100 opacity-50 cursor-not-allowed' : 'bg-gray-50'}`}>
                         <option value="">{getSelectedCategorySubcategories().length === 0 ? 'No Subcategories' : 'Select Subcategory'}</option>
                         {getSelectedCategorySubcategories().map((sub, idx) => (<option key={idx} value={sub}>{sub}</option>))}
@@ -433,10 +535,10 @@ const Inventory = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Price</label>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Price (LKR)</label>
                       <div className="relative group">
-                        <DollarSign className="absolute left-4 top-5 h-4 w-4 text-gray-400 group-focus-within:text-[#22c55e] transition-colors" />
-                        <input type="number" step="0.01" required value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} placeholder="0.00" className="w-full pl-10 pr-4 py-4 bg-gray-50 border-none rounded-2xl font-bold text-gray-900 focus:ring-2 focus:ring-green-500/20 outline-none transition-all" />
+                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-xs font-black text-gray-400 group-focus-within:text-[#22c55e] transition-colors">Rs.</span>
+                        <input type="number" step="0.01" required value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} placeholder="0.00" className="w-full pl-14 pr-6 py-4 bg-gray-50 border-none rounded-2xl font-bold text-gray-900 focus:ring-2 focus:ring-green-500/20 outline-none transition-all" />
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -453,8 +555,26 @@ const Inventory = () => {
                   <textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} rows="3" className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl font-bold text-gray-900 focus:ring-2 focus:ring-green-500/20 outline-none transition-all resize-none" placeholder="Provide a brief summary of the item..." />
                 </div>
                 <div className="flex gap-4 pt-4">
-                  <button type="submit" className="flex-1 bg-[#166534] text-white py-5 rounded-[24px] font-black text-lg shadow-xl shadow-green-100 hover:scale-[1.02] active:scale-[0.98] transition-all">Commit to Inventory</button>
-                  <button type="button" onClick={() => setIsModalOpen(false)} className="px-8 bg-gray-100 text-gray-500 rounded-[24px] font-black hover:bg-gray-200 transition-colors">Cancel</button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 bg-[#166534] text-white py-5 rounded-[24px] font-black text-lg shadow-xl shadow-green-100 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : isEditMode ? (
+                      <>
+                        <RefreshCcw className="h-5 w-5" />
+                        Update Product
+                      </>
+                    ) : (
+                      <>
+                        <PlusCircle className="h-5 w-5" />
+                        Add to Inventory
+                      </>
+                    )}
+                  </button>
+                  <button type="button" onClick={() => { setIsModalOpen(false); setIsEditMode(false); setEditingProductId(null); }} className="px-8 bg-gray-100 text-gray-500 rounded-[24px] font-black hover:bg-gray-200 transition-colors">Cancel</button>
                 </div>
               </form>
             </motion.div>
@@ -462,7 +582,7 @@ const Inventory = () => {
         )}
       </AnimatePresence>
 
-      {/* Category Modal remains identical */}
+      {/* Category Modal */}
       <AnimatePresence>
         {isCategoryModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

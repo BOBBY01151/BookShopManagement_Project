@@ -6,7 +6,8 @@ import {
   LayoutDashboard,
   Search,
   LogOut,
-  Boxes
+  Boxes,
+  Zap
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { authAPI } from '../../api/auth';
@@ -38,6 +39,7 @@ const Sidebar = () => {
   const navItems = [
     { name: 'Overview', path: '/', icon: LayoutDashboard },
     { name: 'Inventory', path: '/inventory', icon: Boxes },
+    { name: 'Daily Used', path: '/daily-used', icon: Zap },
     { name: 'Admin Profile', path: '/settings', icon: ShieldCheck },
   ];
 

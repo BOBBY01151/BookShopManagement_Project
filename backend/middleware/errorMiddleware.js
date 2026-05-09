@@ -45,10 +45,12 @@ const sendErrorProd = (err, res) => {
   } else {
     // Programming or other unknown error: don't leak error details
     console.error('ERROR 💥', err);
+    console.error('ERROR STACK:', err.stack);
 
     res.status(500).json({
       status: 'error',
-      message: 'Something went very wrong!'
+      message: 'Something went very wrong!',
+      error: process.env.NODE_ENV === 'development' ? err : undefined
     });
   }
 };

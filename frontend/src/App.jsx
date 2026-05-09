@@ -1,6 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from 'react-query'
-import { Toaster } from 'react-hot-toast'
 
 // Context Providers
 import { ThemeProvider } from './contexts/ThemeContext'
@@ -10,9 +9,11 @@ import Navbar from './components/common/Navbar'
 import Sidebar from './components/common/Sidebar'
 import BottomNavigation from './components/common/BottomNavigation'
 import ErrorBoundary from './components/common/ErrorBoundary'
+import Notification from './components/Notification'
 
 // Pages
 import Inventory from './pages/Inventory'
+import DailyUsed from './pages/DailyUsed'
 import Profile from './pages/Profile'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
@@ -59,7 +60,7 @@ function LayoutWrapper() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
         </Routes>
-        <Toaster position="top-right" />
+        <Notification />
       </div>
     );
   }
@@ -77,6 +78,7 @@ function LayoutWrapper() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/inventory" element={<Inventory />} />
+              <Route path="/daily-used" element={<DailyUsed />} />
               <Route path="/settings" element={<Profile />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
@@ -86,18 +88,7 @@ function LayoutWrapper() {
 
       {/* Mobile Bottom Navigation */}
       <BottomNavigation />
-      
-      <Toaster 
-        position="top-right"
-        toastOptions={{
-          duration: 4000,
-          style: {
-            background: '#166534',
-            color: '#fff',
-            borderRadius: '16px',
-          },
-        }}
-      />
+      <Notification />
     </div>
   );
 }

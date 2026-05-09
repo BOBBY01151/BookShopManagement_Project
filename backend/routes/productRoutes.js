@@ -3,7 +3,8 @@ const {
   getProducts,
   createProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  getInventoryStats
 } = require('../controllers/productController');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
@@ -16,6 +17,8 @@ router
   .route('/')
   .get(getProducts)
   .post(restrictTo('admin'), createProduct);
+
+router.get('/stats', restrictTo('admin'), getInventoryStats);
 
 router
   .route('/:id')

@@ -21,6 +21,7 @@ api.interceptors.request.use((config) => {
 
 export const productsAPI = {
   getProducts: (params) => api.get('/products', { params }),
+  getStats: () => api.get('/products/stats'),
   createProduct: (data) => api.post('/products', data),
   updateProduct: (id, data) => api.patch(`/products/${id}`, data),
   deleteProduct: (id) => api.delete(`/products/${id}`)

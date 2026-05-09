@@ -6,66 +6,212 @@ const AppError = require('../utils/appError');
 // @route   GET /api/products
 // @access  Private
 exports.getProducts = catchAsync(async (req, res, next) => {
-  // 1) Filtering
-  const queryObj = { ...req.query };
-  const excludedFields = ['page', 'sort', 'limit', 'fields'];
-  excludedFields.forEach(el => delete queryObj[el]);
+  try {
+    // 1) Filtering
+    const queryObj = { ...req.query };
+    const excludedFields = ['page', 'sort', 'limit', 'fields'];
+    excludedFields.forEach(el => delete queryObj[el]);
 
-  // 2) Pagination
-  const page = req.query.page * 1 || 1;
-  const limit = req.query.limit * 1 || 10;
-  const skip = (page - 1) * limit;
+    // 2) Pagination
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
 
-  let query = Product.find(queryObj).sort('-createdAt');
-  
-  // Get total count for pagination metadata
-  const totalItems = await Product.countDocuments(queryObj);
-  
-  const products = await query.skip(skip).limit(limit);
-
-  res.status(200).json({
-    status: 'success',
-    total: totalItems,
-    page,
-    pages: Math.ceil(totalItems / limit),
-    results: products.length,
-    data: {
-      products
+    // 3) Filter by User (Ownership) + Legacy Support
+    // This allows seeing products created by you OR products that have no owner yet
+    if (req.user && req.user.id) {
+      queryObj.$or = [
+        { createdBy: req.user.id },
+        { createdBy: { $exists: false } },
+        { createdBy: null }
+      ];
     }
-  });
+
+    // 4) Execute Query
+    const totalItems = await Product.countDocuments(queryObj);
+    const products = await Product.find(queryObj)
+      .sort('-createdAt')
+      .skip(skip)
+      .limit(limit);
+
+    res.status(200).json({
+      status: 'success',
+      total: totalItems,
+      page,
+      pages: Math.ceil(totalItems / limit) || 1,
+      results: products.length,
+      data: {
+        products
+      }
+    });
+  } catch (error) {
+    console.error('SERVER_ERROR in getProducts:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch products from database',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
 });
 
 // @desc    Create new product
 // @route   POST /api/products
 // @access  Private/Admin
 exports.createProduct = catchAsync(async (req, res, next) => {
-  const product = await Product.create(req.body);
+  try {
+    // Associate product with the current administrator
+    const productData = {
+      ...req.body,
+      createdBy: req.user.id
+    };
 
-  res.status(201).json({
-    status: 'success',
-    data: {
-      product
+    const product = await Product.create(productData);
+    console.log('Product Created Successfully:', product._id);
+
+    res.status(201).json({
+      status: 'success',
+      data: {
+        product
+      }
+    });
+  } catch (error) {
+    console.error('DATABASE_ERROR in createProduct:', error);
+    
+    // 1) Handle Duplicate Key Error (SKU)
+    if (error.code === 11000 || error.name === 'MongoServerError' && error.message.includes('E11000')) {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'A product with this SKU already exists. Please use a unique SKU or leave it blank.'
+      });
     }
-  });
+
+    // 2) Handle Validation Errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(el => el.message);
+      return res.status(400).json({
+        status: 'fail',
+        message: `Invalid data: ${messages.join('. ')}`
+      });
+    }
+
+    // 3) Fallback for other errors
+    res.status(500).json({
+      status: 'error',
+      message: error.message || 'An unexpected error occurred while saving the product'
+    });
+  }
 });
 
 // @desc    Update product
 // @route   PATCH /api/products/:id
 // @access  Private/Admin
 exports.updateProduct = catchAsync(async (req, res, next) => {
-  const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
-    new: true,
-    runValidators: true
+  try {
+    const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true
+    });
+
+    if (!product) {
+      return next(new AppError('No product found with that ID', 404));
+    }
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        product
+      }
+    });
+  } catch (error) {
+    console.error('DATABASE_ERROR in updateProduct:', error);
+    
+    // Handle Duplicate Key Error (SKU)
+    if (error.code === 11000 || error.name === 'MongoServerError' && error.message.includes('E11000')) {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'Another product already uses this SKU. Please use a unique SKU.'
+      });
+    }
+
+    res.status(500).json({
+      status: 'error',
+      message: error.message || 'Failed to update product'
+    });
+  }
+});
+
+// @desc    Get inventory stats for dashboard
+// @route   GET /api/products/stats
+// @access  Private/Admin
+exports.getInventoryStats = catchAsync(async (req, res, next) => {
+  const Category = require('../models/Category');
+
+  // 1) Get all defined categories
+  const allCategories = await Category.find().select('name');
+  
+  // 2) Get product metrics grouped by category
+  const productStats = await Product.aggregate([
+    {
+      $group: {
+        _id: '$category',
+        count: { $sum: 1 },
+        stock: { $sum: '$stock' },
+        value: { $sum: { $multiply: ['$price', '$stock'] } }
+      }
+    }
+  ]);
+
+  // 3) Merge: Ensure every category exists in the final list
+  const finalCategories = allCategories.map(cat => {
+    const stats = productStats.find(p => p._id === cat.name);
+    return {
+      _id: cat.name,
+      count: stats?.count || 0,
+      stock: stats?.stock || 0,
+      value: stats?.value || 0
+    };
   });
 
-  if (!product) {
-    return next(new AppError('No product found with that ID', 404));
-  }
+  // 4) Get overall summary
+  const summary = await Product.aggregate([
+    {
+      $group: {
+        _id: null,
+        totalValue: { $sum: { $multiply: ['$price', '$stock'] } },
+        totalStock: { $sum: '$stock' },
+        totalProducts: { $count: {} },
+        averagePrice: { $avg: '$price' }
+      }
+    }
+  ]);
+
+  // 5) Get top metrics
+  const topValuedCategory = [...finalCategories].sort((a, b) => b.value - a.value)[0];
+  
+  const highestValueProduct = await Product.aggregate([
+    {
+      $project: {
+        title: 1,
+        totalValue: { $multiply: ['$price', '$stock'] }
+      }
+    },
+    { $sort: { totalValue: -1 } },
+    { $limit: 1 }
+  ]);
+
+  // 6) Get low stock count
+  const lowStock = await Product.countDocuments({ stock: { $lt: 10 } });
 
   res.status(200).json({
     status: 'success',
     data: {
-      product
+      stats: {
+        summary: summary[0] || { totalValue: 0, totalStock: 0, totalProducts: 0, averagePrice: 0 },
+        categories: finalCategories.sort((a, b) => b.stock - a.stock),
+        topValuedCategory: topValuedCategory || null,
+        highestValueProduct: highestValueProduct[0] || null,
+        lowStock: [{ count: lowStock }]
+      }
     }
   });
 });

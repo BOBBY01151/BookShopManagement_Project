@@ -4,7 +4,8 @@ import {
   LayoutDashboard,
   Boxes,
   ShieldCheck,
-  Search
+  Search,
+  Zap
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -13,6 +14,7 @@ const BottomNavigation = () => {
   const navItems = [
     { name: 'Home', path: '/', icon: LayoutDashboard },
     { name: 'Stock', path: '/inventory', icon: Boxes },
+    { name: 'Daily', path: '/daily-used', icon: Zap },
     { name: 'Admin', path: '/settings', icon: ShieldCheck },
   ];
 

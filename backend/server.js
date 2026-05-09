@@ -17,7 +17,7 @@ const routes = require('./routes');
 
 // Import middleware
 const globalErrorHandler = require('./middleware/errorMiddleware');
-const { setSecurityHeaders, generalLimiter, authLimiter } = require('./middleware/securityMiddleware');
+const { setSecurityHeaders, generalLimiter, authLimiter, requestLogger } = require('./middleware/securityMiddleware');
 const corsOptions = require('./config/cors');
 
 // Load environment variables
@@ -26,7 +26,19 @@ require('dotenv').config();
 const app = express();
 
 // Connect to database
-connectDB();
+connectDB().then(async () => {
+  const mongoose = require('mongoose');
+  try {
+    // Force drop the index directly on the collection
+    const collection = mongoose.connection.collection('products');
+    if (collection) {
+      await collection.dropIndex('sku_1');
+      console.log('✅ DATABASE_CLEANUP: Successfully dropped old SKU index.');
+    }
+  } catch (err) {
+    console.log('ℹ️ DATABASE_INFO: SKU index already clean or not found.');
+  }
+});
 
 // Trust proxy
 app.set('trust proxy', 1);
@@ -34,6 +46,7 @@ app.set('trust proxy', 1);
 // Global middleware
 app.use(cors(corsOptions));
 app.use(setSecurityHeaders);
+app.use(requestLogger);
 app.use(compression());
 
 // Rate limiting

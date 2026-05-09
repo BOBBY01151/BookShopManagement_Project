@@ -2,6 +2,7 @@ const express = require('express');
 const authRoutes = require('./authRoutes');
 const productRoutes = require('./productRoutes');
 const categoryRoutes = require('./categoryRoutes');
+const dailyUsageRoutes = require('./dailyUsageRoutes');
 
 const router = express.Router();
 
@@ -19,6 +20,7 @@ router.get('/health', (req, res) => {
 router.use('/auth', authRoutes);
 router.use('/products', productRoutes);
 router.use('/categories', categoryRoutes);
+router.use('/daily-usage', dailyUsageRoutes);
 
 // 404 handler for API routes
 router.all('*', (req, res) => {

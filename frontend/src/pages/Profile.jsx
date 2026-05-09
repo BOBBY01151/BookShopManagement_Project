@@ -81,11 +81,42 @@ const AdminSettings = () => {
     { id: 'notifications', label: 'Alerts', icon: Bell },
   ];
 
-  if (loading) {
+  const Skeleton = ({ className }) => (
+    <div className={`relative overflow-hidden bg-gray-100 rounded-2xl ${className}`}>
+      <motion.div 
+        animate={{ x: ['-100%', '100%'] }}
+        transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }}
+        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-1/2 h-full -skew-x-12"
+      />
+    </div>
+  );
+
+  if (loading && !adminUser) {
     return (
-      <div className="h-[60vh] flex flex-col items-center justify-center space-y-4">
-        <Loader2 className="h-12 w-12 text-[#22c55e] animate-spin" />
-        <p className="text-gray-500 font-bold animate-pulse uppercase tracking-widest text-xs">Accessing Secure Profile...</p>
+      <div className="space-y-8">
+        <div className="bg-white p-8 rounded-3xl border border-gray-100">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-20 w-20 rounded-3xl" />
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Skeleton className="h-14 w-28 rounded-2xl" />
+              <Skeleton className="h-14 w-28 rounded-2xl" />
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          <div className="space-y-2">
+            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-14 w-full" />)}
+          </div>
+          <div className="lg:col-span-3">
+            <Skeleton className="h-[500px] w-full rounded-3xl" />
+          </div>
+        </div>
       </div>
     );
   }

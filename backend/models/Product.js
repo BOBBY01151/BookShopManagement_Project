@@ -35,6 +35,7 @@ const productSchema = new mongoose.Schema({
   sku: {
     type: String,
     unique: true,
+    sparse: true,
     trim: true
   },
   description: {
@@ -44,6 +45,10 @@ const productSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   }
 }, {
   timestamps: true
