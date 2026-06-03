@@ -66,14 +66,14 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center relative overflow-hidden">
+    <div className="min-h-screen bg-white flex items-start lg:items-center justify-center relative overflow-x-hidden">
       {/* Background Glow */}
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none hidden lg:block">
          <div className="absolute -top-[15%] -right-[10%] w-[50%] h-[50%] bg-green-50 rounded-full blur-[140px] opacity-60" />
          <div className="absolute -bottom-[15%] -left-[10%] w-[50%] h-[50%] bg-emerald-50 rounded-full blur-[140px] opacity-60" />
       </div>
 
-      <div className="max-w-[1400px] w-full h-full lg:h-[850px] grid grid-cols-1 lg:grid-cols-2 bg-white lg:rounded-[48px] shadow-2xl shadow-green-900/10 lg:border lg:border-gray-100 overflow-hidden relative z-10">
+      <div className="max-w-[1400px] w-full min-h-screen lg:min-h-0 lg:h-[850px] grid grid-cols-1 lg:grid-cols-2 bg-white lg:rounded-[48px] shadow-2xl shadow-green-900/10 lg:border lg:border-gray-100 overflow-x-hidden lg:overflow-hidden relative z-10">
         
         {/* Left Side: Branding (Mirrors Login) */}
         <div className="hidden lg:flex flex-col justify-between p-16 bg-[#166534] relative overflow-hidden">
@@ -113,7 +113,7 @@ const Register = () => {
         </div>
 
         {/* Right Side: Register Form */}
-        <div className="p-8 lg:p-20 overflow-y-auto custom-scrollbar">
+        <div className="p-8 lg:p-20 flex flex-col justify-center">
           <div className="max-w-md mx-auto">
             <div className="mb-10">
                <div className="lg:hidden flex items-center space-x-2 mb-8">
