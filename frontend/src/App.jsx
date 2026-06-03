@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from 'react-query'
 
 // Context Providers
@@ -20,7 +20,8 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import NotFound from './pages/NotFound'
 
-// Create a client
+// ─── React Query Client ───────────────────────────────────────────────────────
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -30,13 +31,107 @@ const queryClient = new QueryClient({
   },
 })
 
+// ─── Auth Helpers ─────────────────────────────────────────────────────────────
+
+const isAuthenticated = () => !!localStorage.getItem('token')
+
+// ─── Auth Guards ──────────────────────────────────────────────────────────────
+
+/**
+ * ProtectedRoute — Redirects to /login if the user has no token.
+ */
+function ProtectedRoute({ children }) {
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace />
+  }
+  return children
+}
+
+/**
+ * PublicRoute — Redirects to / if the user is already logged in.
+ * Used for /login and /register so logged-in users skip them.
+ */
+function PublicRoute({ children }) {
+  if (isAuthenticated()) {
+    return <Navigate to="/" replace />
+  }
+  return children
+}
+
+// ─── Layout ───────────────────────────────────────────────────────────────────
+
+function LayoutWrapper() {
+  const location = useLocation()
+  const isAuthPage =
+    location.pathname === '/login' || location.pathname === '/register'
+
+  // ── Auth pages (no sidebar / navbar) ──────────────────────────────────────
+  if (isAuthPage) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Routes>
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <PublicRoute>
+                <Register />
+              </PublicRoute>
+            }
+          />
+        </Routes>
+        <Notification />
+      </div>
+    )
+  }
+
+  // ── Protected app shell ───────────────────────────────────────────────────
+  return (
+    <ProtectedRoute>
+      <div className="flex h-screen overflow-hidden bg-white dark:bg-gray-950">
+        {/* Desktop Sidebar */}
+        <Sidebar />
+
+        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+          <Navbar />
+
+          <main className="flex-1 overflow-y-auto pb-24 lg:pb-8 scroll-smooth">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <Routes>
+                <Route path="/"           element={<Dashboard />} />
+                <Route path="/inventory"  element={<Inventory />} />
+                <Route path="/daily-used" element={<DailyUsed />} />
+                <Route path="/settings"   element={<Profile />} />
+                <Route path="*"           element={<NotFound />} />
+              </Routes>
+            </div>
+          </main>
+        </div>
+
+        {/* Mobile Bottom Navigation */}
+        <BottomNavigation />
+        <Notification />
+      </div>
+    </ProtectedRoute>
+  )
+}
+
+// ─── App Root ─────────────────────────────────────────────────────────────────
+
 function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-            <AppContent />
+            <LayoutWrapper />
           </Router>
         </ThemeProvider>
       </QueryClientProvider>
@@ -44,54 +139,4 @@ function App() {
   )
 }
 
-function AppContent() {
-  return <LayoutWrapper />;
-}
-
-
-function LayoutWrapper() {
-  const location = useLocation();
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
-
-  if (isAuthPage) {
-    return (
-      <div className="min-h-screen bg-white">
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-        </Routes>
-        <Notification />
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex h-screen overflow-hidden bg-white dark:bg-gray-950">
-      {/* Desktop Sidebar */}
-      <Sidebar />
-      
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        <Navbar />
-        
-        <main className="flex-1 overflow-y-auto pb-24 lg:pb-8 scroll-smooth">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/inventory" element={<Inventory />} />
-              <Route path="/daily-used" element={<DailyUsed />} />
-              <Route path="/settings" element={<Profile />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </div>
-        </main>
-      </div>
-
-      {/* Mobile Bottom Navigation */}
-      <BottomNavigation />
-      <Notification />
-    </div>
-  );
-}
-
 export default App
-
