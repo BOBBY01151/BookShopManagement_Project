@@ -111,24 +111,31 @@ app.use(globalErrorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-  console.log(`📚 SchoolShop API is ready to serve!`);
-});
+let server;
+if (!process.env.VERCEL) {
+  server = app.listen(PORT, () => {
+    console.log(`🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+    console.log(`📚 SchoolShop API is ready to serve!`);
+  });
+}
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err, promise) => {
   console.log('Unhandled Rejection at:', promise, 'reason:', err);
   // Close server & exit process
-  server.close(() => {
-    process.exit(1);
-  });
+  if (server && typeof server.close === 'function') {
+    server.close(() => {
+      if (!process.env.VERCEL) process.exit(1);
+    });
+  } else {
+    if (!process.env.VERCEL) process.exit(1);
+  }
 });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
   console.log('Uncaught Exception thrown:', err);
-  process.exit(1);
+  if (!process.env.VERCEL) process.exit(1);
 });
 
 module.exports = app;
