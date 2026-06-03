@@ -38,6 +38,16 @@ connectDB().then(async () => {
   } catch (err) {
     console.log('ℹ️ DATABASE_INFO: SKU index already clean or not found.');
   }
+  
+  try {
+    const categoryCollection = mongoose.connection.collection('categories');
+    if (categoryCollection) {
+      await categoryCollection.dropIndex('name_1');
+      console.log('✅ DATABASE_CLEANUP: Successfully dropped old Category name index.');
+    }
+  } catch (err) {
+    console.log('ℹ️ DATABASE_INFO: Category name index already clean or not found.');
+  }
 });
 
 // Trust proxy

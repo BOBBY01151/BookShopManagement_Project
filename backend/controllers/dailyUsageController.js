@@ -7,7 +7,7 @@ exports.recordUsage = async (req, res) => {
     const { productId, quantity } = req.body;
 
     // 1) Find product
-    const product = await Product.findById(productId);
+    const product = await Product.findOne({ _id: productId, createdBy: req.user.id });
     if (!product) {
       return res.status(404).json({
         status: 'fail',
@@ -56,6 +56,7 @@ exports.getTodayUsage = async (req, res) => {
     startOfDay.setHours(0, 0, 0, 0);
 
     const usage = await DailyUsage.find({
+      recordedBy: req.user.id,
       recordedAt: { $gte: startOfDay }
     })
     .populate('product', 'title price category')

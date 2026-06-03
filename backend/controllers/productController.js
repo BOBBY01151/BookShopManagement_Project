@@ -17,14 +17,9 @@ exports.getProducts = catchAsync(async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // 3) Filter by User (Ownership) + Legacy Support
-    // This allows seeing products created by you OR products that have no owner yet
+    // 3) Filter strictly by logged-in User (Ownership Isolation)
     if (req.user && req.user.id) {
-      queryObj.$or = [
-        { createdBy: req.user.id },
-        { createdBy: { $exists: false } },
-        { createdBy: null }
-      ];
+      queryObj.createdBy = req.user.id;
     }
 
     // 4) Execute Query
@@ -107,10 +102,14 @@ exports.createProduct = catchAsync(async (req, res, next) => {
 // @access  Private/Admin
 exports.updateProduct = catchAsync(async (req, res, next) => {
   try {
-    const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
-    });
+    const product = await Product.findOneAndUpdate(
+      { _id: req.params.id, createdBy: req.user.id },
+      req.body,
+      {
+        new: true,
+        runValidators: true
+      }
+    );
 
     if (!product) {
       return next(new AppError('No product found with that ID', 404));
@@ -145,12 +144,18 @@ exports.updateProduct = catchAsync(async (req, res, next) => {
 // @access  Private/Admin
 exports.getInventoryStats = catchAsync(async (req, res, next) => {
   const Category = require('../models/Category');
+  const mongoose = require('mongoose');
 
-  // 1) Get all defined categories
-  const allCategories = await Category.find().select('name');
+  // 1) Get all defined categories for the current user
+  const allCategories = await Category.find({ createdBy: req.user.id }).select('name');
   
-  // 2) Get product metrics grouped by category
+  // 2) Get product metrics grouped by category for the current user
   const productStats = await Product.aggregate([
+    {
+      $match: {
+        createdBy: new mongoose.Types.ObjectId(req.user.id)
+      }
+    },
     {
       $group: {
         _id: '$category',
@@ -172,8 +177,13 @@ exports.getInventoryStats = catchAsync(async (req, res, next) => {
     };
   });
 
-  // 4) Get overall summary
+  // 4) Get overall summary for the current user
   const summary = await Product.aggregate([
+    {
+      $match: {
+        createdBy: new mongoose.Types.ObjectId(req.user.id)
+      }
+    },
     {
       $group: {
         _id: null,
@@ -190,6 +200,11 @@ exports.getInventoryStats = catchAsync(async (req, res, next) => {
   
   const highestValueProduct = await Product.aggregate([
     {
+      $match: {
+        createdBy: new mongoose.Types.ObjectId(req.user.id)
+      }
+    },
+    {
       $project: {
         title: 1,
         totalValue: { $multiply: ['$price', '$stock'] }
@@ -199,8 +214,11 @@ exports.getInventoryStats = catchAsync(async (req, res, next) => {
     { $limit: 1 }
   ]);
 
-  // 6) Get low stock count
-  const lowStock = await Product.countDocuments({ stock: { $lt: 10 } });
+  // 6) Get low stock count for the current user
+  const lowStock = await Product.countDocuments({
+    createdBy: req.user.id,
+    stock: { $lt: 10 }
+  });
 
   res.status(200).json({
     status: 'success',
@@ -220,7 +238,7 @@ exports.getInventoryStats = catchAsync(async (req, res, next) => {
 // @route   DELETE /api/products/:id
 // @access  Private/Admin
 exports.deleteProduct = catchAsync(async (req, res, next) => {
-  const product = await Product.findByIdAndDelete(req.params.id);
+  const product = await Product.findOneAndDelete({ _id: req.params.id, createdBy: req.user.id });
 
   if (!product) {
     return next(new AppError('No product found with that ID', 404));

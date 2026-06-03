@@ -4,7 +4,6 @@ const categorySchema = new mongoose.Schema({
   name: {
     type: String,
     required: [true, 'Category name is required'],
-    unique: true,
     trim: true,
     maxlength: [50, 'Category name cannot exceed 50 characters']
   },
@@ -29,7 +28,7 @@ const categorySchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Case-insensitive uniqueness for category names
-categorySchema.index({ name: 1 }, { unique: true, collation: { locale: 'en', strength: 2 } });
+// Case-insensitive uniqueness for category names per user
+categorySchema.index({ name: 1, createdBy: 1 }, { unique: true, collation: { locale: 'en', strength: 2 } });
 
 module.exports = mongoose.model('Category', categorySchema);

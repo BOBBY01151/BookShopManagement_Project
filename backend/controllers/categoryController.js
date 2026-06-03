@@ -6,7 +6,7 @@ const AppError = require('../utils/appError');
 // @route   GET /api/categories
 // @access  Private
 exports.getCategories = catchAsync(async (req, res, next) => {
-  const categories = await Category.find().sort('name');
+  const categories = await Category.find({ createdBy: req.user.id }).sort('name');
 
   res.status(200).json({
     status: 'success',
@@ -38,10 +38,14 @@ exports.createCategory = catchAsync(async (req, res, next) => {
 // @route   PATCH /api/categories/:id
 // @access  Private/Admin
 exports.updateCategory = catchAsync(async (req, res, next) => {
-  const category = await Category.findByIdAndUpdate(req.params.id, req.body, {
-    new: true,
-    runValidators: true
-  });
+  const category = await Category.findOneAndUpdate(
+    { _id: req.params.id, createdBy: req.user.id },
+    req.body,
+    {
+      new: true,
+      runValidators: true
+    }
+  );
 
   if (!category) {
     return next(new AppError('No category found with that ID', 404));
@@ -59,7 +63,7 @@ exports.updateCategory = catchAsync(async (req, res, next) => {
 // @route   DELETE /api/categories/:id
 // @access  Private/Admin
 exports.deleteCategory = catchAsync(async (req, res, next) => {
-  const category = await Category.findByIdAndDelete(req.params.id);
+  const category = await Category.findOneAndDelete({ _id: req.params.id, createdBy: req.user.id });
 
   if (!category) {
     return next(new AppError('No category found with that ID', 404));
